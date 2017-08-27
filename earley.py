@@ -4,6 +4,7 @@ class Item:
     __slots__ = ['rule', 'dot', 'start']
 
     def __init__(self, rule, dot, start):
+        assert type(rule) is tuple
         self.rule = rule
         self.dot = dot
         self.start = start
@@ -26,8 +27,8 @@ class Item:
 def earley(terminals, grammar, tokens):
     statesets = []
     statesets.append([
-        Item(['Sum', 0], 0, 0),
-        Item(['Sum', 1], 0, 0)
+        Item(('Sum', 0), 0, 0),
+        Item(('Sum', 1), 0, 0)
     ])
 
     i = 0
@@ -64,7 +65,7 @@ def earley(terminals, grammar, tokens):
                 print('prediction:', item)
                 k = rule[item.dot]
                 for x in range(len(grammar[k])):
-                    newitem = Item([k, x], 0, i)
+                    newitem = Item((k, x), 0, i)
                     if newitem not in stateset:
                         stateset.append(newitem)
             j += 1
@@ -112,4 +113,4 @@ grammar = {
 test1 = ['1', '+', '2']
 test2 = ['1', '+', '(', '2', '*', '3', '-', '4', ')']
 
-earley(terminals, grammar, test1)
+earley(terminals, grammar, test2)
