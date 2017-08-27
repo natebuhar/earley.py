@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import copy
 
 class Item:
     __slots__ = ['rule', 'dot', 'start']
@@ -45,7 +45,7 @@ def earley(terminals, grammar, tokens):
                 for x in statesets[item.start]:
                     r = x.getrule()
                     if x.dot < len(r) and r[x.dot] == item.rule[0]:
-                        newitem = deepcopy(x)
+                        newitem = copy(x)
                         newitem.dot += 1
                         assert newitem not in stateset
                         stateset.append(newitem)
@@ -55,7 +55,7 @@ def earley(terminals, grammar, tokens):
                 token = tokens[i]
                 if terminals[k](token):
                     print('scan:', repr(token), k)
-                    newitem = deepcopy(item)
+                    newitem = copy(item)
                     newitem.dot += 1
                     if i == len(statesets) - 1:
                         statesets.append([])
