@@ -25,11 +25,11 @@ class Item:
         return grammar[self.rule[0]][self.rule[1]]
 
 def earley(terminals, grammar, tokens):
-    statesets = []
-    statesets.append([
-        Item(('Sum', 0), 0, 0),
-        Item(('Sum', 1), 0, 0)
-    ])
+    statesets = [[]]
+
+    k = list(grammar.keys())[0]
+    for i in range(len(grammar[k])):
+        statesets[-1].append(Item((k, i), 0, 0))
 
     i = 0
     while i < len(statesets):
