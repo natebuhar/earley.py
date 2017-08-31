@@ -80,6 +80,23 @@ class Item:
     def advance(cls, item):
         return cls(item.rule, item.dot + 1, item.start)
 
+def get_topmost(statesets, item):
+    """ Given [A -> a. (i)] "item" search for [X -> b.A (j)] in S(i) "match" such that match is the only item in S(i) with A after the dot. Instead of doing a completion and adding [X -> bA. (j)] "result" we repeat the search on result. If no match is found for a given item, we just return that item. """
+    found    = False
+    matches  = []
+    stateset = statesets[item.start]
+    for i, m in enumerate(stateset):
+        if m.dot < len(m.rule) and m.rule[m.dot] == item.rule.symbol:
+            matches.append(i)
+            if m.dot == len(m.rule) - 1:
+                found = True
+
+    if found and len(matches) == 1:
+        match = Item.advance(stateset[matches[0]])
+        return get_topmost(statesets, match)
+    else:
+        return item
+
 def earley(grammar, string):
     statesets = [[]]
 
@@ -97,12 +114,18 @@ def earley(grammar, string):
             rule = item.rule
 
             if item.dot == len(rule):
-                # completion
-                for x in statesets[item.start]:
-                    if x.dot < len(x.rule) and x.rule[x.dot] == item.rule.symbol:
-                        newitem = Item.advance(x)
-                        if newitem not in stateset:
-                            stateset.append(newitem)
+                # search for the topmost item in the deterministic reduction
+                # path and add it instead if it exists
+                topmost = get_topmost(statesets, item)
+                if topmost != item:
+                    if topmost not in statesets[i]:
+                        statesets[i].append(topmost)
+                else:
+                    for x in statesets[item.start]:
+                        if x.dot < len(x.rule) and x.rule[x.dot] == item.rule.symbol:
+                            newitem = Item.advance(x)
+                            if newitem not in stateset:
+                                stateset.append(newitem)
 
             elif rule[item.dot] in grammar.terminals and i < len(string):
                 # scan
@@ -247,4 +270,21 @@ def test_nullable():
     for grammar, string in negative:
         assert not is_valid_parse(grammar, string)
 
-test_nullable()
+def test_right_recursion_optimization():
+    grammar = Grammar(
+        {
+            'a': lambda x: x == 'a',
+        },
+        {
+            'A': [
+                Rule('A', ['a', 'A']),
+                Rule('A', []),
+            ]
+        }
+    )
+
+    # test that stateset sizes do not grow for right recursive rules
+    s = earley(grammar, 'aaaaaaaa')
+    l = len(s[2])
+    for x in s[3:]:
+        assert len(x) == l
