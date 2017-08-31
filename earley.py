@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 class Grammar:
     def __init__(self, terminals, nonterminals):
         self.terminals = terminals
@@ -158,7 +160,7 @@ def earley(grammar, string):
 
 def dump_statesets(statesets):
     for i, s in enumerate(statesets):
-        print('=== S({}) ==='.format(i))
+        print('=== S({i}) ==='.format(i))
         for i, x in enumerate(s):
             print('{}: {}'.format(i, x))
         print()
@@ -179,112 +181,122 @@ def is_valid_parse(grammar, string):
         len(stateset) == len(string) + 1 and \
         len(list(completed_items(stateset))) == 1
 
-def test_simple_arith():
-    grammar = Grammar(
-        {
-            '[+-]': lambda x: x in '+-',
-            '[*/]': lambda x: x in '*/',
-            '[0-9]': lambda x: x.isdecimal(),
-            '(': lambda x: x == '(',
-            ')': lambda x: x == ')',
-        },
-        {
-            'Sum': [
-                Rule('Sum', ['Sum', '[+-]', 'Product']),
-                Rule('Sum', ['Product']),
-            ],
-            'Product': [
-                Rule('Product', ['Product', '[*/]', 'Factor']),
-                Rule('Product', ['Factor']),
-            ],
 
-            'Factor': [
-                Rule('Factor', ['(', 'Sum', ')']),
-                Rule('Factor', ['Number']),
-            ],
 
-            'Number': [
-                Rule('Number', ['[0-9]', 'Number']),
-                Rule('Number', ['[0-9]']),
-            ],
-        }
-    )
 
-    positive = [
-        '1+2',
-        '1+(2*3-4)',
-    ]
-    for string in positive:
-        assert is_valid_parse(grammar, string)
+if __name__ == '__main__':
+    from unittest import TestCase, main
 
-    negative = [
-        '',
-        '1+',
-        '+1',
-        '2+(4*5',
-        '2+(4*5))',
-        '2++2',
-    ]
-    for string in negative:
-        assert not is_valid_parse(grammar, string)
+    class TestEarley(TestCase):
+        def test_simple_arith(self):
+            grammar = Grammar(
+                {
+                    '[+-]': lambda x: x in '+-',
+                    '[*/]': lambda x: x in '*/',
+                    '[0-9]': lambda x: x.isdecimal(),
+                    '(': lambda x: x == '(',
+                    ')': lambda x: x == ')',
+                },
+                {
+                    'Sum': [
+                        Rule('Sum', ['Sum', '[+-]', 'Product']),
+                        Rule('Sum', ['Product']),
+                    ],
+                    'Product': [
+                        Rule('Product', ['Product', '[*/]', 'Factor']),
+                        Rule('Product', ['Factor']),
+                    ],
 
-def test_nullable():
-    grammar1 = Grammar(
-        {
-            'a': lambda x: x == 'a',
-        },
-        {
-            'A': [
-                Rule('A', ['a', 'A']),
-                Rule('A', []),
-            ],
-        }
-    )
+                    'Factor': [
+                        Rule('Factor', ['(', 'Sum', ')']),
+                        Rule('Factor', ['Number']),
+                    ],
 
-    grammar2 = Grammar(
-        {
-            'a': lambda x: x == 'a',
-            'b': lambda x: x == 'b',
-        },
-        {
-            'A': [
-                Rule('A', ['a', 'A']),
-                Rule('A', ['b'])
-            ],
-        }
-    )
+                    'Number': [
+                        Rule('Number', ['[0-9]', 'Number']),
+                        Rule('Number', ['[0-9]']),
+                    ],
+                }
+            )
 
-    positive = [
-        (grammar1, ''),
-        (grammar1, 'aaa'),
-        (grammar2, 'aaab'),
-    ]
-    for grammar, string in positive:
-        assert is_valid_parse(grammar, string)
-
-    negative = [
-        (grammar2, ''),
-        (grammar2, 'aaa'),
-        (grammar1, 'aaab'),
-    ]
-    for grammar, string in negative:
-        assert not is_valid_parse(grammar, string)
-
-def test_right_recursion_optimization():
-    grammar = Grammar(
-        {
-            'a': lambda x: x == 'a',
-        },
-        {
-            'A': [
-                Rule('A', ['a', 'A']),
-                Rule('A', []),
+            positive = [
+                '1+2',
+                '1+(2*3-4)',
             ]
-        }
-    )
+            for string in positive:
+                assert is_valid_parse(grammar, string)
 
-    # test that stateset sizes do not grow for right recursive rules
-    s = earley(grammar, 'aaaaaaaa')
-    l = len(s[2])
-    for x in s[3:]:
-        assert len(x) == l
+            negative = [
+                '',
+                '1+',
+                '+1',
+                '2+(4*5',
+                '2+(4*5))',
+                '2++2',
+            ]
+            for string in negative:
+                assert not is_valid_parse(grammar, string)
+
+        def test_nullable(self):
+            grammar1 = Grammar(
+                {
+                    'a': lambda x: x == 'a',
+                },
+                {
+                    'A': [
+                        Rule('A', ['a', 'A']),
+                        Rule('A', []),
+                    ],
+                }
+            )
+
+            grammar2 = Grammar(
+                {
+                    'a': lambda x: x == 'a',
+                    'b': lambda x: x == 'b',
+                },
+                {
+                    'A': [
+                        Rule('A', ['a', 'A']),
+                        Rule('A', ['b'])
+                    ],
+                }
+            )
+
+            positive = [
+                (grammar1, ''),
+                (grammar1, 'aaa'),
+                (grammar2, 'aaab'),
+            ]
+            for grammar, string in positive:
+                assert is_valid_parse(grammar, string)
+
+            negative = [
+                (grammar2, ''),
+                (grammar2, 'aaa'),
+                (grammar1, 'aaab'),
+            ]
+            for grammar, string in negative:
+                assert not is_valid_parse(grammar, string)
+
+        def test_right_recursion_optimization(self):
+            grammar = Grammar(
+                {
+                    'a': lambda x: x == 'a',
+                },
+                {
+                    'A': [
+                        Rule('A', ['a', 'A']),
+                        Rule('A', []),
+                    ]
+                }
+            )
+
+            # test that stateset sizes do not grow for right recursive rules
+            s = earley(grammar, 'aaaaaaaa')
+            l = len(s[2])
+            for x in s[3:]:
+                assert len(x) == l
+
+
+    main()

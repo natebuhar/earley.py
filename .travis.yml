@@ -1,0 +1,7 @@
+language: python
+python:
+ - "3.6"
+ - "nightly"
+script: python earley.py
+notifications:
+ email: false
