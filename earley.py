@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 class Grammar:
+    __slots__ = ('terminals', 'nonterminals', 'nullable')
+
     def __init__(self, terminals, nonterminals):
         self.terminals = terminals
         self.nonterminals = nonterminals
@@ -17,18 +19,15 @@ class Grammar:
 
     def get_nullable_rules(self):
         """ Find all nullable symbols in the grammar. """
-        nss = []
+        nss = set()
         def is_nullable(rule):
-            for x in rule:
-                if x not in nss:
-                    return False
-            return True
+            return all(x in nss for x in rule)
 
         def update_nss():
             for s, rules in self.nonterminals.items():
                 for x in rules:
-                    if is_nullable(x) and s not in nss:
-                        nss.append(s)
+                    if is_nullable(x):
+                        nss.add(s)
 
         while True:
             size = len(nss)
@@ -38,7 +37,7 @@ class Grammar:
         return nss
 
 class Rule:
-    __slots__ = ['symbol', 'seq']
+    __slots__ = ('symbol', 'seq')
 
     def __init__(self, symbol, seq):
         self.symbol = symbol
@@ -59,7 +58,7 @@ class Rule:
         return '[{} -> {}]'.format(self.symbol, ' '.join(self.seq))
 
 class Item:
-    __slots__ = ['rule', 'dot', 'start']
+    __slots__ = ('rule', 'dot', 'start')
 
     def __init__(self, rule, dot, start):
         self.rule = rule
