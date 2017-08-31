@@ -2,6 +2,7 @@ class Grammar:
     def __init__(self, terminals, nonterminals):
         self.terminals = terminals
         self.nonterminals = nonterminals
+        self.nullable = self.get_nullable_rules()
 
     def __getitem__(self, symbol):
         try:
@@ -11,6 +12,28 @@ class Grammar:
 
     def __contains__(self, symbol):
         return symbol in self.terminals or symbol in self.nonterminals
+
+    def get_nullable_rules(self):
+        """ Find all nullable symbols in the grammar. """
+        nss = []
+        def is_nullable(rule):
+            for x in rule:
+                if x not in nss:
+                    return False
+            return True
+
+        def update_nss():
+            for s, rules in self.nonterminals.items():
+                for x in rules:
+                    if is_nullable(x) and s not in nss:
+                        nss.append(s)
+
+        while True:
+            size = len(nss)
+            update_nss()
+            if size == len(nss):
+                break
+        return nss
 
 class Rule:
     __slots__ = ['symbol', 'seq']
@@ -57,7 +80,7 @@ class Item:
     def advance(cls, item):
         return cls(item.rule, item.dot + 1, item.start)
 
-def earley(grammar, tokens):
+def earley(grammar, string):
     statesets = [[]]
 
     symbol = list(grammar.nonterminals.keys())[0]
@@ -78,13 +101,13 @@ def earley(grammar, tokens):
                 for x in statesets[item.start]:
                     if x.dot < len(x.rule) and x.rule[x.dot] == item.rule.symbol:
                         newitem = Item.advance(x)
-                        assert newitem not in stateset
-                        stateset.append(newitem)
+                        if newitem not in stateset:
+                            stateset.append(newitem)
 
-            elif rule[item.dot] in grammar.terminals and i < len(tokens):
+            elif rule[item.dot] in grammar.terminals and i < len(string):
                 # scan
                 symbol = rule[item.dot]
-                token = tokens[i]
+                token = string[i]
                 if grammar.terminals[symbol](token):
                     newitem = Item.advance(item)
                     if i == len(statesets) - 1:
@@ -98,6 +121,12 @@ def earley(grammar, tokens):
                     newitem = Item(rule, 0, i)
                     if newitem not in stateset:
                         stateset.append(newitem)
+
+                # automatic completion for nullable symbols
+                if symbol in grammar.nullable:
+                    newitem = Item.advance(item)
+                    if newitem not in statesets[i]:
+                        statesets[i].append(newitem)
 
             j += 1
         i += 1
@@ -115,6 +144,17 @@ def dump_statesets(statesets):
     for i, x in enumerate(statesets[-1]):
         if x.dot == len(x.rule) and x.start == 0:
             print('{}: {}'.format(i, x))
+
+def completed_items(stateset):
+    for x in stateset[-1]:
+        if x.dot == len(x.rule) and x.start == 0:
+            yield x
+
+def is_valid_parse(grammar, string):
+    stateset = earley(grammar, string)
+    return \
+        len(stateset) == len(string) + 1 and \
+        len(list(completed_items(stateset))) == 1
 
 def test_simple_arith():
     grammar = Grammar(
@@ -147,19 +187,12 @@ def test_simple_arith():
         }
     )
 
-    def completed_items(stateset):
-        for x in stateset[-1]:
-            if x.dot == len(x.rule) and x.start == 0:
-                yield x
-
     positive = [
         '1+2',
         '1+(2*3-4)',
     ]
-    for test in positive:
-        s = earley(grammar, test)
-        assert len(s) == len(test) + 1
-        assert len(list(completed_items(s))) == 1
+    for string in positive:
+        assert is_valid_parse(grammar, string)
 
     negative = [
         '',
@@ -169,8 +202,49 @@ def test_simple_arith():
         '2+(4*5))',
         '2++2',
     ]
-    for test in negative:
-        s = earley(grammar, test)
-        assert \
-            len(s) != len(test) + 1 or \
-            len(list(completed_items(s))) == 0
+    for string in negative:
+        assert not is_valid_parse(grammar, string)
+
+def test_nullable():
+    grammar1 = Grammar(
+        {
+            'a': lambda x: x == 'a',
+        },
+        {
+            'A': [
+                Rule('A', ['a', 'A']),
+                Rule('A', []),
+            ],
+        }
+    )
+
+    grammar2 = Grammar(
+        {
+            'a': lambda x: x == 'a',
+            'b': lambda x: x == 'b',
+        },
+        {
+            'A': [
+                Rule('A', ['a', 'A']),
+                Rule('A', ['b'])
+            ],
+        }
+    )
+
+    positive = [
+        (grammar1, ''),
+        (grammar1, 'aaa'),
+        (grammar2, 'aaab'),
+    ]
+    for grammar, string in positive:
+        assert is_valid_parse(grammar, string)
+
+    negative = [
+        (grammar2, ''),
+        (grammar2, 'aaa'),
+        (grammar1, 'aaab'),
+    ]
+    for grammar, string in negative:
+        assert not is_valid_parse(grammar, string)
+
+test_nullable()
