@@ -25,9 +25,8 @@ class Grammar:
 
         def update_nss():
             for s, rules in self.nonterminals.items():
-                for x in rules:
-                    if is_nullable(x):
-                        nss.add(s)
+                if any(map(is_nullable, rules)):
+                    nss.add(s)
 
         while True:
             size = len(nss)
@@ -83,20 +82,22 @@ class Item:
 
 def get_topmost(statesets, item):
     """ Given [A -> a. (i)] "item" search for [X -> b.A (j)] in S(i) "match" such that match is the only item in S(i) with A after the dot. Instead of doing a completion and adding [X -> bA. (j)] "result" we repeat the search on result. If no match is found for a given item, we just return that item. """
-    found    = False
-    matches  = []
-    stateset = statesets[item.start]
-    for i, m in enumerate(stateset):
-        if m.dot < len(m.rule) and m.rule[m.dot] == item.rule.symbol:
-            matches.append(i)
-            if m.dot == len(m.rule) - 1:
-                found = True
+    while True:
+        found    = False
+        match    = None
+        stateset = statesets[item.start]
+        for m in stateset:
+            if m.dot < len(m.rule) and m.rule[m.dot] == item.rule.symbol:
+                if match:
+                    return item
+                match = m
+                if m.dot == len(m.rule) - 1:
+                    found = True
 
-    if found and len(matches) == 1:
-        match = Item.advance(stateset[matches[0]])
-        return get_topmost(statesets, match)
-    else:
-        return item
+        if found and match:
+            item = Item.advance(match)
+        else:
+            return item
 
 def earley(grammar, string):
     statesets = [[]]
