@@ -159,7 +159,7 @@ def earley(grammar, string):
 
 def dump_statesets(statesets):
     for i, s in enumerate(statesets):
-        print('=== S({i}) ==='.format(i))
+        print('=== S({}) ==='.format(i))
         for i, x in enumerate(s):
             print('{}: {}'.format(i, x))
         print()
