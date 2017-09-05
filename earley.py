@@ -54,7 +54,8 @@ class Rule:
         return self.seq[index]
 
     def __repr__(self):
-        return '[{} -> {}]'.format(self.symbol, ' '.join(self.seq))
+        s = ' '.join(self.seq)
+        return f'[{self.symbol} -> {s}]'
 
 class Item:
     __slots__ = ('rule', 'dot', 'start')
@@ -74,7 +75,7 @@ class Item:
         seq = list(self.rule.seq)
         seq.insert(self.dot, '•')
         seq = ' '.join(seq)
-        return '[{} -> {} ({})]'.format(self.rule.symbol, seq, self.start)
+        return f'[{self.rule.symbol} -> {seq} ({self.start})]'
 
     @classmethod
     def advance(cls, item):
@@ -160,15 +161,15 @@ def earley(grammar, string):
 
 def dump_statesets(statesets):
     for i, s in enumerate(statesets):
-        print('=== S({}) ==='.format(i))
+        print(f'=== S({i}) ===')
         for i, x in enumerate(s):
-            print('{}: {}'.format(i, x))
+            print(f'{i}: {x}')
         print()
 
     print('=== COMPLETED ===')
     for i, x in enumerate(statesets[-1]):
         if x.dot == len(x.rule) and x.start == 0:
-            print('{}: {}'.format(i, x))
+            print(f'{i}: {x}')
 
 def completed_items(stateset):
     for x in stateset[-1]:
