@@ -256,10 +256,29 @@ def test_nullable():
         }
     )
 
+    grammar3 = Grammar(
+        {
+            'a': lambda x: x == 'a',
+            'b': lambda x: x == 'b',
+        },
+        {
+            'A': [
+                Rule('A', ['a', 'B']),
+                Rule('A', []),
+            ],
+            'B': [
+                Rule('B', ['b', 'A']),
+            ]
+        }
+    )
+
     positive = [
         (grammar1, ''),
         (grammar1, 'aaa'),
         (grammar2, 'aaab'),
+        (grammar3, ''),
+        (grammar3, 'ab'),
+        (grammar3, 'abab'),
     ]
     for grammar, string in positive:
         assert is_valid_parse(grammar, string)
@@ -268,6 +287,8 @@ def test_nullable():
         (grammar2, ''),
         (grammar2, 'aaa'),
         (grammar1, 'aaab'),
+        (grammar3, 'a'),
+        (grammar3, 'aba'),
     ]
     for grammar, string in negative:
         assert not is_valid_parse(grammar, string)
